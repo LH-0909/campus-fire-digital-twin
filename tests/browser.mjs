@@ -1,0 +1,32 @@
+import {chromium} from '@playwright/test';
+import assert from 'node:assert/strict';
+const browser=await chromium.launch({executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',headless:true,args:['--enable-unsafe-swiftshader']});
+try{
+ const page=await browser.newPage({viewport:{width:1672,height:941}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('http://127.0.0.1:5174',{waitUntil:'networkidle'});
+ await page.getByRole('heading',{name:'系统登录',exact:true}).waitFor();
+ await page.screenshot({path:'artifacts/twin-login.png',fullPage:true});
+ await page.getByRole('button',{name:'登录系统',exact:true}).click();assert.ok(await page.getByRole('alert').count());
+ await page.getByRole('button',{name:'管理员入口',exact:true}).click();
+ await page.getByRole('button',{name:'使用管理员演示账号',exact:true}).click();
+ await page.locator('.twin-viewport canvas').waitFor();
+ await page.getByRole('button',{name:'启动演练',exact:true}).click();await page.waitForTimeout(2600);
+ await page.getByRole('button',{name:'暂停演练',exact:true}).click();
+ const time=await page.locator('.live-tag').textContent();await page.waitForTimeout(1000);assert.equal(await page.locator('.live-tag').textContent(),time);
+ await page.getByRole('button',{name:'楼层剖切',exact:true}).click();await page.screenshot({path:'artifacts/twin-command.png',fullPage:true});
+ await page.getByRole('button',{name:'学生演练端',exact:true}).click();
+ await page.getByRole('button',{name:'继续演练',exact:true}).click();
+ await page.getByRole('button',{name:'弯腰前进',exact:false}).click();await page.getByRole('button',{name:'湿毛巾防护',exact:true}).click();
+ await page.getByRole('button',{name:'暂停演练',exact:true}).click();assert.ok((await page.locator('.warning-box').textContent()).includes('低姿态'));
+ await page.screenshot({path:'artifacts/twin-student.png',fullPage:true});
+ await page.getByRole('button',{name:'预案优化与复盘',exact:true}).click();assert.ok(await page.getByRole('slider',{name:'演练回放进度'}).isEnabled());
+ await page.getByRole('button',{name:'运行 A/B 对比',exact:true}).click();await page.waitForTimeout(1500);assert.ok(!(await page.locator('.comparison-table').textContent()).includes('—'));
+ await page.screenshot({path:'artifacts/twin-review.png',fullPage:true});
+ await page.getByRole('button',{name:'教师管理后台',exact:true}).click();await page.screenshot({path:'artifacts/twin-teacher.png',fullPage:true});
+ await page.getByRole('button',{name:'新建演练',exact:true}).click();await page.getByRole('dialog').waitFor();await page.getByRole('button',{name:'关闭对话框'}).click();
+ await page.getByRole('button',{name:'数字孪生',exact:true}).click();const download=page.waitForEvent('download');await page.getByRole('button',{name:'导出记录',exact:true}).click();assert.equal((await download).suggestedFilename(),'campus-twin-drill.json');
+ await page.setViewportSize({width:390,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+ await page.getByRole('button',{name:'系统管理员 · 退出',exact:true}).click();await page.getByRole('heading',{name:'系统登录',exact:true}).waitFor();
+ await page.screenshot({path:'artifacts/twin-mobile.png',fullPage:true});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+ assert.deepEqual(errors,[]);console.log('Browser regression passed: login, 3D, pause, operations, replay, comparison, teacher, export, logout and mobile.');
+}finally{await browser.close();}

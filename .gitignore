@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.local/
+*.log
+图片/
+artifacts/
+.codex/
+.agents/
+.env*
+publish/
+*.sqlite*
+*.zip

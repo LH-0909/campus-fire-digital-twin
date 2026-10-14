@@ -1,0 +1,32 @@
+import { chromium } from '@playwright/test';
+import assert from 'node:assert/strict';
+const browser=await chromium.launch({executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',headless:true,args:['--enable-unsafe-swiftshader']});
+try {
+ const page=await browser.newPage({viewport:{width:1600,height:1050}});
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.goto('http://127.0.0.1:5174',{waitUntil:'networkidle'});
+ await page.locator('.viewport canvas').waitFor();
+ assert.equal(await page.locator('h1').textContent(),'校园火灾应急疏散指挥中心');
+ await page.getByRole('button',{name:'启动火灾演练'}).click();
+ await page.waitForTimeout(1500);
+ assert.ok((await page.locator('.events').textContent()).includes('发生火情'));
+ await page.getByRole('button',{name:'暂停演练'}).click();
+ const time=await page.locator('.status strong').textContent();
+ await page.waitForTimeout(1100);assert.equal(await page.locator('.status strong').textContent(),time);
+ await page.getByRole('button',{name:'西侧出口',exact:false}).click();
+ await page.getByRole('button',{name:'东侧出口',exact:false}).click();
+ await page.getByRole('button',{name:'继续演练'}).click();
+ await page.waitForTimeout(1100);
+ assert.ok((await page.locator('.events').textContent()).includes('暂无安全路径'));
+ await page.getByRole('button',{name:'结束评分'}).click();
+ assert.ok(await page.getByRole('heading',{name:'演练评分'}).count());
+ const download=page.waitForEvent('download');await page.getByRole('button',{name:'导出记录'}).click();
+ const file=await download;assert.equal(file.suggestedFilename(),'campus-drill.json');
+ await page.getByRole('button',{name:'重置',exact:true}).click();
+ assert.equal(await page.locator('.status strong').textContent(),'00:00');
+ await page.screenshot({path:'artifacts/campus-desktop.png',fullPage:true});
+ await page.setViewportSize({width:390,height:844});await page.screenshot({path:'artifacts/campus-mobile.png',fullPage:true});
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+ assert.deepEqual(errors,[]);
+ console.log('Browser passed: WebGL scene, start/pause, blocked exits, scoring, JSON export, reset, mobile overflow; no page errors.');
+} finally {await browser.close();}
